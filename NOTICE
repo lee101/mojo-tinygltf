@@ -1,0 +1,15 @@
+mojo-tinygltf
+
+This project is a derived Mojo port of tinygltf:
+https://github.com/syoyo/tinygltf
+
+Ported from upstream revision a434ee02066c2d9b62a3504876aed38e6e399fe0.
+tinygltf is Copyright (c) 2017 Syoyo Fujita, Aurélien Chatelain and
+contributors and is distributed under the MIT License. Its license text is
+reproduced in LICENSE by the terms common to both projects.
+
+The implementation follows tiny_gltf.h functions GetComponentSizeInBytes,
+GetNumComponentsInType, Accessor::ByteStride, ParseNode,
+TinyGLTF::LoadBinaryFromMemory, and WriteBinaryGltfStream, together with the
+sparse patch and matrix kernels in examples/glview/glview.cc and
+examples/common/matrix.cc.
