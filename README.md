@@ -107,8 +107,15 @@ those arrays directly. Node matrices are stored as flat 16-value row-major
 blocks for hierarchy multiplication, while explicit glTF matrices are
 transposed once from their on-disk column-major order. Contiguous float32 and
 int16 accessors use target-width SIMD with scalar remainder loops. Decodes over
-one million components use up to eight affinity-available CPUs; smaller inputs
-stay serial.
+one million components use the MAX thread pool with up to eight
+affinity-available CPUs; smaller inputs stay serial. Packed float32 sparse VEC3
+values use a two-lane SIMD conversion and a scalar tail for each scattered row.
+
+No GPU path is included. Accessor conversion and sparse patching are
+bandwidth-bound at under 0.2 flop per byte moved. A 4x4 world multiplication is
+also below 2 flops per byte after matrix traffic is counted, and parent-child
+dependencies prevent parallel evaluation of the benchmark's chain. GPU
+transfer and launch overhead therefore cannot be justified for these kernels.
 
 ## Benchmarks
 
@@ -122,15 +129,15 @@ between runs.
 
 | Kernel | Mojo | Reference | Speedup | Reference |
 |---|---:|---:|---:|---|
-| float32 VEC3 decode, 2M | 31.74 ms | 33.33 ms | 1.05x | NumPy |
-| normalized int16 VEC4, 2M | 51.41 ms | 117.01 ms | 2.28x | NumPy |
-| sparse VEC3 patch, 1M/100k | 12.94 ms | 18.58 ms | 1.44x | NumPy |
-| world transforms, 20k chain | 72.12 ms | 61.45 ms | 0.85x | NumPy loop |
-| float32 VEC3 decode, 2M/8 CPUs | 16.08 ms | 35.00 ms | 2.18x | NumPy |
-| normalized int16 VEC4, 2M/8 CPUs | 13.63 ms | 110.83 ms | 8.13x | NumPy |
+| float32 VEC3 decode, 2M | 17.45 ms | 19.02 ms | 1.09x | NumPy |
+| normalized int16 VEC4, 2M | 30.95 ms | 66.86 ms | 2.16x | NumPy |
+| sparse VEC3 patch, 1M/100k | 4.69 ms | 6.25 ms | 1.33x | NumPy |
+| world transforms, 20k chain | 50.32 ms | 55.76 ms | 1.11x | NumPy loop |
+| float32 VEC3 decode, 2M/8 CPUs | 4.79 ms | 18.41 ms | 3.84x | NumPy |
+| normalized int16 VEC4, 2M/8 CPUs | 6.63 ms | 71.06 ms | 10.72x | NumPy |
 
-In this run, Mojo improved both dense conversions and the sparse patch. The
-hierarchy kernel was slower than its reference. No GPU path is included.
+In this run, Mojo was faster than its reference in every row. The real
+thread-pool path produced the largest gains on the multi-CPU dense decoders.
 
 Reproduce the table only through the locked task:
 

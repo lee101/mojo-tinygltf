@@ -238,7 +238,7 @@ class Model(MutableMapping[str, Any]):
         workers = _available_workers()
         result = (
             np.empty((count, components), dtype=np.float64)
-            if buffer_view_index is not None and workers > 1
+            if buffer_view_index is not None
             else np.zeros((count, components), dtype=np.float64)
         )
         if count and buffer_view_index is not None:

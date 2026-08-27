@@ -70,6 +70,36 @@ def test_sparse_accessor_without_base_starts_at_zero():
     np.testing.assert_allclose(Model(document, buffers).accessor(0), expected)
 
 
+def test_sparse_float_vec3_simd_scalar_tail_preserves_rows():
+    indices = struct.pack("<II", 1, 3)
+    values = struct.pack("<ffffff", 10, 11, 12, 30, 31, 32)
+    buffers = [indices, values]
+    document = {
+        "asset": {"version": "2.0"},
+        "buffers": [{"byteLength": len(x)} for x in buffers],
+        "bufferViews": [
+            {"buffer": 0, "byteLength": len(indices)},
+            {"buffer": 1, "byteLength": len(values)},
+        ],
+        "accessors": [
+            {
+                "componentType": 5126,
+                "count": 5,
+                "type": "VEC3",
+                "sparse": {
+                    "count": 2,
+                    "indices": {"bufferView": 0, "componentType": 5125},
+                    "values": {"bufferView": 1},
+                },
+            }
+        ],
+    }
+    expected = np.zeros((5, 3))
+    expected[1] = [10, 11, 12]
+    expected[3] = [30, 31, 32]
+    np.testing.assert_array_equal(Model(document, buffers).accessor(0), expected)
+
+
 def test_sparse_out_of_range_index_rejected():
     buffers = [bytes([4]), struct.pack("<f", 1)]
     document = {

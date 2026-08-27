@@ -5,6 +5,7 @@ its address as an Int, which keeps all exported functions non-parametric.
 """
 
 from std.sys import simd_width_of
+from max.algorithm import parallelize
 
 
 comptime BPtr = UnsafePointer[UInt8, AnyOrigin[mut=True]]
@@ -13,17 +14,6 @@ comptime IPtr = UnsafePointer[Int64, AnyOrigin[mut=True]]
 comptime W = simd_width_of[DType.float64]()
 comptime MATRIX_WIDTH = 4
 comptime PARALLEL_MIN_ELEMENTS = 1_000_000
-
-
-# `parallelize` moved from the standalone Mojo standard library to the MAX
-# package in Mojo 1.1.  This project deliberately depends only on Mojo, so keep
-# the same blocking task interface and execute its coarse SIMD blocks locally.
-@always_inline
-def parallelize[
-    origins: OriginSet, //, func: def(Int) capturing[origins] -> None
-](num_work_items: Int, num_workers: Int):
-    for task in range(num_work_items):
-        func(task)
 
 
 @always_inline
@@ -386,6 +376,31 @@ def mtg_apply_sparse(
     var values = BPtr(unsafe_from_address=values_addr)
     var dst = DPtr(unsafe_from_address=dst_addr)
     var previous_index = Int64(-1)
+    if value_component_type == 5126 and accessor_type == 3:
+        comptime VEC3_SIMD_WIDTH = 2
+        comptime VEC3_WIDTH = 3
+        var packed = (values + values_offset).bitcast[Float32]()
+        for i in range(sparse_count):
+            var index = read_sparse_index(
+                indices, indices_offset + i * index_size, index_component_type
+            )
+            if index < 0 or index >= Int64(accessor_count):
+                return -3
+            if index <= previous_index:
+                return -5
+            previous_index = index
+            dst.store(
+                Int(index) * VEC3_WIDTH,
+                packed.load[width=VEC3_SIMD_WIDTH, alignment=1](
+                    i * VEC3_WIDTH
+                ).cast[DType.float64](),
+            )
+            dst[Int(index) * VEC3_WIDTH + VEC3_SIMD_WIDTH] = Float64(
+                packed.load[alignment=1](
+                    i * VEC3_WIDTH + VEC3_SIMD_WIDTH
+                )
+            )
+        return 0
     for i in range(sparse_count):
         var index = read_sparse_index(
             indices, indices_offset + i * index_size, index_component_type
