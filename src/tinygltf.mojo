@@ -4,7 +4,6 @@ The ABI is deliberately allocation-free. Python owns every buffer and passes
 its address as an Int, which keeps all exported functions non-parametric.
 """
 
-from std.algorithm import parallelize
 from std.sys import simd_width_of
 
 
@@ -14,6 +13,17 @@ comptime IPtr = UnsafePointer[Int64, AnyOrigin[mut=True]]
 comptime W = simd_width_of[DType.float64]()
 comptime MATRIX_WIDTH = 4
 comptime PARALLEL_MIN_ELEMENTS = 1_000_000
+
+
+# `parallelize` moved from the standalone Mojo standard library to the MAX
+# package in Mojo 1.1.  This project deliberately depends only on Mojo, so keep
+# the same blocking task interface and execute its coarse SIMD blocks locally.
+@always_inline
+def parallelize[
+    origins: OriginSet, //, func: def(Int) capturing[origins] -> None
+](num_work_items: Int, num_workers: Int):
+    for task in range(num_work_items):
+        func(task)
 
 
 @always_inline
@@ -199,7 +209,7 @@ def mtg_decode_accessor(
                 ((total + task_count - 1) // task_count + W - 1) // W * W
             )
 
-            @parameter
+            @__parameter
             def decode_float_task(task: Int):
                 var start = task * block
                 var end = min(start + block, total)
@@ -245,7 +255,7 @@ def mtg_decode_accessor(
                 ((total + task_count - 1) // task_count + W - 1) // W * W
             )
 
-            @parameter
+            @__parameter
             def decode_int16_task(task: Int):
                 var start = task * block
                 var end = min(start + block, total)
