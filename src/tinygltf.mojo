@@ -5,7 +5,6 @@ its address as an Int, which keeps all exported functions non-parametric.
 """
 
 from std.sys import simd_width_of
-from max.algorithm import parallelize
 
 
 comptime BPtr = UnsafePointer[UInt8, AnyOrigin[mut=True]]
@@ -199,8 +198,7 @@ def mtg_decode_accessor(
                 ((total + task_count - 1) // task_count + W - 1) // W * W
             )
 
-            @__parameter
-            def decode_float_task(task: Int):
+            for task in range(task_count):
                 var start = task * block
                 var end = min(start + block, total)
                 var k = start
@@ -215,8 +213,6 @@ def mtg_decode_accessor(
                 while k < end:
                     dst[k] = Float64(packed.load[alignment=1](k))
                     k += 1
-
-            parallelize[decode_float_task](task_count, task_count)
             return 0
         var k = 0
         while k + W <= total:
@@ -245,8 +241,7 @@ def mtg_decode_accessor(
                 ((total + task_count - 1) // task_count + W - 1) // W * W
             )
 
-            @__parameter
-            def decode_int16_task(task: Int):
+            for task in range(task_count):
                 var start = task * block
                 var end = min(start + block, total)
                 var k = start
@@ -266,8 +261,6 @@ def mtg_decode_accessor(
                         normalized != 0,
                     )
                     k += 1
-
-            parallelize[decode_int16_task](task_count, task_count)
             return 0
         var k = 0
         while k + W <= total:
