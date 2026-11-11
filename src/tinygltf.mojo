@@ -108,31 +108,31 @@ def read_component(
         if normalized:
             value /= 255.0
     elif component_type == 5122:
-        var u = Int((src + offset).bitcast[UInt16]().load[alignment=1]())
+        var u = Int((src + offset).bitcast[UInt16]().unsafe_load[alignment=1]())
         if u >= 32768:
             u -= 65536
         value = Float64(u)
         if normalized:
             value = max(value / 32767.0, -1.0)
     elif component_type == 5123:
-        value = Float64((src + offset).bitcast[UInt16]().load[alignment=1]())
+        value = Float64((src + offset).bitcast[UInt16]().unsafe_load[alignment=1]())
         if normalized:
             value /= 65535.0
     elif component_type == 5124:
-        var u = Int64((src + offset).bitcast[UInt32]().load[alignment=1]())
+        var u = Int64((src + offset).bitcast[UInt32]().unsafe_load[alignment=1]())
         if u >= 2147483648:
             u -= 4294967296
         value = Float64(u)
         if normalized:
             value = max(value / 2147483647.0, -1.0)
     elif component_type == 5125:
-        value = Float64((src + offset).bitcast[UInt32]().load[alignment=1]())
+        value = Float64((src + offset).bitcast[UInt32]().unsafe_load[alignment=1]())
         if normalized:
             value /= 4294967295.0
     elif component_type == 5126:
-        value = Float64((src + offset).bitcast[Float32]().load[alignment=1]())
+        value = Float64((src + offset).bitcast[Float32]().unsafe_load[alignment=1]())
     elif component_type == 5130:
-        value = (src + offset).bitcast[Float64]().load[alignment=1]()
+        value = (src + offset).bitcast[Float64]().unsafe_load[alignment=1]()
     return value
 
 
@@ -205,24 +205,24 @@ def mtg_decode_accessor(
                 while k + W <= end:
                     dst.store(
                         k,
-                        packed.load[width=W, alignment=1](k).cast[
+                        packed.unsafe_load[width=W, alignment=1](k).cast[
                             DType.float64
                         ](),
                     )
                     k += W
                 while k < end:
-                    dst[k] = Float64(packed.load[alignment=1](k))
+                    dst[k] = Float64(packed.unsafe_load[alignment=1](k))
                     k += 1
             return 0
         var k = 0
         while k + W <= total:
             dst.store(
                 k,
-                packed.load[width=W, alignment=1](k).cast[DType.float64](),
+                packed.unsafe_load[width=W, alignment=1](k).cast[DType.float64](),
             )
             k += W
         while k < total:
-            dst[k] = Float64(packed.load[alignment=1](k))
+            dst[k] = Float64(packed.unsafe_load[alignment=1](k))
             k += 1
         return 0
     if (
@@ -246,7 +246,7 @@ def mtg_decode_accessor(
                 var end = min(start + block, total)
                 var k = start
                 while k + W <= end:
-                    var values = packed.load[width=W, alignment=1](k).cast[
+                    var values = packed.unsafe_load[width=W, alignment=1](k).cast[
                         DType.float64
                     ]()
                     if normalized != 0:
@@ -264,7 +264,7 @@ def mtg_decode_accessor(
             return 0
         var k = 0
         while k + W <= total:
-            var values = packed.load[width=W, alignment=1](k).cast[
+            var values = packed.unsafe_load[width=W, alignment=1](k).cast[
                 DType.float64
             ]()
             if normalized != 0:
@@ -294,9 +294,9 @@ def read_sparse_index(src: BPtr, offset: Int, component_type: Int) -> Int64:
     if component_type == 5121:
         return Int64(src[offset])
     if component_type == 5123:
-        return Int64((src + offset).bitcast[UInt16]().load[alignment=1]())
+        return Int64((src + offset).bitcast[UInt16]().unsafe_load[alignment=1]())
     if component_type == 5125:
-        return Int64((src + offset).bitcast[UInt32]().load[alignment=1]())
+        return Int64((src + offset).bitcast[UInt32]().unsafe_load[alignment=1]())
     return -1
 
 
@@ -384,12 +384,12 @@ def mtg_apply_sparse(
             previous_index = index
             dst.store(
                 Int(index) * VEC3_WIDTH,
-                packed.load[width=VEC3_SIMD_WIDTH, alignment=1](
+                packed.unsafe_load[width=VEC3_SIMD_WIDTH, alignment=1](
                     i * VEC3_WIDTH
                 ).cast[DType.float64](),
             )
             dst[Int(index) * VEC3_WIDTH + VEC3_SIMD_WIDTH] = Float64(
-                packed.load[alignment=1](
+                packed.unsafe_load[alignment=1](
                     i * VEC3_WIDTH + VEC3_SIMD_WIDTH
                 )
             )
@@ -519,20 +519,20 @@ def mtg_resolve_world(
                 var offset = d + row * MATRIX_WIDTH
                 dst.store(
                     offset,
-                    local.load[width=MATRIX_WIDTH, alignment=1](offset),
+                    local.unsafe_load[width=MATRIX_WIDTH, alignment=1](offset),
                 )
         else:
             if parent >= count:
                 return -3
             var p = parent * 16
-            var local_row_0 = local.load[width=MATRIX_WIDTH, alignment=1](d)
-            var local_row_1 = local.load[width=MATRIX_WIDTH, alignment=1](
+            var local_row_0 = local.unsafe_load[width=MATRIX_WIDTH, alignment=1](d)
+            var local_row_1 = local.unsafe_load[width=MATRIX_WIDTH, alignment=1](
                 d + MATRIX_WIDTH
             )
-            var local_row_2 = local.load[width=MATRIX_WIDTH, alignment=1](
+            var local_row_2 = local.unsafe_load[width=MATRIX_WIDTH, alignment=1](
                 d + 2 * MATRIX_WIDTH
             )
-            var local_row_3 = local.load[width=MATRIX_WIDTH, alignment=1](
+            var local_row_3 = local.unsafe_load[width=MATRIX_WIDTH, alignment=1](
                 d + 3 * MATRIX_WIDTH
             )
             for row in range(4):
